@@ -2,15 +2,6 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-# This job tests that the patches apply cleanly, and nothing else. The goal is to test this as
-# quickly as possible. This job is a good signal for devs: GitHub Actions is quick to get an agent,
-# so when this job fails, it's easy to see, and clear to the dev that the rest of the PR's jobs
-# aren't going to succeed and can be ignored.
-#
-# Ideally, failure of this job would block the tests from running, because it would be a waste of
-# time to hit the patch failure N times. However, the actual tests run in AzDO, so we can't
-# reasonably cancel them from here (GitHub Actions).
-
 name: "Test"
 
 on:
@@ -23,11 +14,36 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  check_patches:
-    name: Patches Apply Cleanly
+  cryptobackend:
+    name: cryptobackend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - run: pwsh eng/run.ps1 submodule-refresh -shallow
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: cryptobackend/go.mod
+          cache-dependency-path: cryptobackend/go.sum
+
+      - name: Test cryptobackend
+        working-directory: cryptobackend
+        run: go test ./...
+
+  eng_util:
+    name: eng/_util
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: eng/_util/go.mod
+          cache-dependency-path: eng/_util/go.sum
+
+      - name: Test eng/_util
+        working-directory: eng/_util
+        run: go test ./...

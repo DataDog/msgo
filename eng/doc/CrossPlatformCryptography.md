@@ -57,39 +57,37 @@ This section includes the following packages:
 - [crypto/sha3](https://pkg.go.dev/crypto/sha3)
 - [crypto/hmac](https://pkg.go.dev/crypto/hmac)
 
-| Algorithm             | Windows        | Linux            | macOS          |
-| --------------------- | -------------- | ---------------- | -------------- |
-| MD5                   | ✔️             | ✔️               | ✔️             |
-| SHA-1                 | ✔️             | ✔️               | ✔️             |
-| SHA-2-224             | ❌️             | ✔️               | ✔️             |
-| SHA-2-256             | ✔️             | ✔️               | ✔️             |
-| SHA-2-384             | ✔️             | ✔️               | ✔️             |
-| SHA-2-512             | ✔️             | ✔️               | ✔️             |
-| SHA-2-512_224         | ❌️             | ✔️<sup>1,2</sup> | ❌️             |
-| SHA-2-512_256         | ❌️             | ✔️<sup>1,2</sup> | ❌️             |
-| SHA-3-224<sup>3</sup> | ❌️             | ✔️<sup>2</sup>   | ❌️             |
-| SHA-3-256<sup>3</sup> | ✔️<sup>4</sup> | ✔️<sup>2</sup>   | ✔️<sup>5</sup> |
-| SHA-3-384<sup>3</sup> | ✔️<sup>4</sup> | ✔️<sup>2</sup>   | ✔️<sup>5</sup> |
-| SHA-3-512<sup>3</sup> | ✔️<sup>4</sup> | ✔️<sup>2</sup>   | ✔️<sup>5</sup> |
-| SHAKE-128             | ✔️             | ✔️<sup>6</sup>   | ❌️             |
-| SHAKE-256             | ✔️             | ✔️<sup>6</sup>   | ❌️             |
-| CSHAKE-128            | ✔️             | ❌️               | ❌️             |
-| CSHAKE-256            | ✔️             | ❌️               | ❌️             |
-| HMAC<sup>7</sup>      | ✔️             | ✔️               | ✔️             |
+| Algorithm             | Windows        | Linux          | macOS          |
+| --------------------- | -------------- | -------------- | -------------- |
+| MD5                   | ✔️             | ✔️             | ✔️             |
+| SHA-1                 | ✔️             | ✔️             | ✔️             |
+| SHA-2-224             | ❌️             | ✔️             | ❌️             |
+| SHA-2-256             | ✔️             | ✔️             | ✔️             |
+| SHA-2-384             | ✔️             | ✔️             | ✔️             |
+| SHA-2-512             | ✔️             | ✔️             | ✔️             |
+| SHA-2-512_224         | ❌️             | ✔️<sup>1</sup> | ❌️             |
+| SHA-2-512_256         | ❌️             | ✔️<sup>1</sup> | ❌️             |
+| SHA-3-224<sup>2</sup> | ❌️             | ✔️<sup>1</sup> | ❌️             |
+| SHA-3-256<sup>2</sup> | ✔️<sup>3</sup> | ✔️<sup>1</sup> | ✔️<sup>4</sup> |
+| SHA-3-384<sup>2</sup> | ✔️<sup>3</sup> | ✔️<sup>1</sup> | ✔️<sup>4</sup> |
+| SHA-3-512<sup>2</sup> | ✔️<sup>3</sup> | ✔️<sup>1</sup> | ✔️<sup>4</sup> |
+| SHAKE-128             | ✔️             | ✔️<sup>5</sup> | ❌️             |
+| SHAKE-256             | ✔️             | ✔️<sup>5</sup> | ❌️             |
+| CSHAKE-128            | ✔️             | ❌️             | ❌️             |
+| CSHAKE-256            | ✔️             | ❌️             | ❌️             |
+| HMAC<sup>6</sup>      | ✔️             | ✔️             | ✔️             |
 
-<sup>1</sup>Available starting in the Microsoft build of Go 1.24.
+<sup>1</sup>Requires OpenSSL 1.1.1 or later.
 
-<sup>2</sup>Requires OpenSSL 1.1.1 or later.
+<sup>2</sup>Available starting in the Microsoft build of Go 1.26.
 
-<sup>3</sup>Available starting in the Microsoft build of Go 1.26.
+<sup>3</sup>Requires Windows 11 (24H2) or later.
 
-<sup>4</sup>Requires Windows 11 (24H2) or later.
+<sup>4</sup>Requires macOS 26 or later.
 
-<sup>5</sup>Requires macOS 26 or later.
+<sup>5</sup>Requires OpenSSL 3.3 or later.
 
-<sup>6</sup>Requires OpenSSL 3.3 or later.
-
-<sup>7</sup>Supports only hash algorithms that are supported as standalone hash functions.
+<sup>6</sup>Supports only hash algorithms that are supported as standalone hash functions.
 
 ## Symmetric encryption
 
@@ -138,6 +136,7 @@ This section includes the following subsections:
 - [ECDSA](#ecdsa)
 - [ECDH](#ecdh)
 - [Ed25519](#ed25519)
+- [ML-DSA](#ml-dsa)
 - [DSA](#dsa)
 
 ### RSA
@@ -165,12 +164,12 @@ Operations that require random numbers (rand io.Reader) only support [rand.Reade
 | PSS (SHA-2)<sup>2</sup>                | ✔️<sup>4</sup>   | ✔️             | ✔️<sup>5</sup> |
 | PSS (SHA-3)<sup>2</sup>                | ✔️<sup>3</sup>   | ✔️             | ❌️             |
 | PKCS1v15 Signature (Unhashed)          | ✔️               | ✔️             | ✔️             |
-| PKCS1v15 Signature (RIPMED160)         | ❌️               | ✔️<sup>6</sup> | ❌️             |
+| PKCS1v15 Signature (RIPMED160)         | ❌️               | ✔️             | ❌️             |
 | PKCS1v15 Signature (MD5)               | ✔️               | ✔️             | ❌️             |
-| PKCS1v15 Signature (MD5-SHA1)          | ✔️<sup>6</sup>   | ✔️<sup>6</sup> | ❌️             |
+| PKCS1v15 Signature (MD5-SHA1)          | ✔️               | ✔️             | ❌️             |
 | PKCS1v15 Signature (SHA-1)             | ✔️               | ✔️             | ✔️             |
 | PKCS1v15 Signature (SHA-2)<sup>2</sup> | ✔️               | ✔️             | ✔️             |
-| PKCS1v15 Signature (SHA-3)             | ✔️<sup>3,7</sup> | ✔️<sup>8</sup> | ❌️             |
+| PKCS1v15 Signature (SHA-3)             | ✔️<sup>3,6</sup> | ✔️<sup>7</sup> | ❌️             |
 
 <sup>1</sup>macOS doesn't support passing a custom label to OAEP functions.
 
@@ -182,11 +181,9 @@ Operations that require random numbers (rand io.Reader) only support [rand.Reade
 
 <sup>5</sup>Custom salt lengths are not supported. PSS always uses the [`rsa.PSSSaltLengthEqualsHash`](https://pkg.go.dev/crypto/rsa#pkg-constants).
 
-<sup>6</sup>Available starting in the Microsoft build of Go 1.24.
+<sup>6</sup>Requires Windows 11 (24H2) or later.
 
-<sup>7</sup>Requires Windows 11 (24H2) or later.
-
-<sup>8</sup>Requires OpenSSL 1.1.1 or later.
+<sup>7</sup>Requires OpenSSL 1.1.1 or later.
 
 ### ECDSA
 
@@ -237,6 +234,28 @@ Operations that require random numbers (rand io.Reader) only support [rand.Reade
 | Ed25519    | ❌️      | ✔️    | ✔️    |
 | Ed25519ctx | ❌️      | ❌️    | ❌️    |
 | Ed25519ph  | ❌️      | ❌️    | ❌️    |
+
+### ML-DSA
+
+This section includes the following packages:
+
+- [crypto/mldsa](https://pkg.go.dev/crypto/mldsa)
+
+ML-DSA is available starting from the Microsoft build of Go 1.27.
+
+Operations that require random numbers (rand io.Reader) only support [rand.Reader](https://pkg.go.dev/crypto/rand#Reader). Deterministic signing is always performed by the Go cryptographic module. External-mu signing falls back to the Go cryptographic module on platforms whose backend does not implement it (currently macOS).
+
+| Parameters | Windows        | Linux          | macOS          |
+| ---------- | -------------- | -------------- | -------------- |
+| 44         | ✔️<sup>1</sup> | ✔️<sup>2</sup> | ❌️             |
+| 65         | ✔️<sup>1</sup> | ✔️<sup>2</sup> | ✔️<sup>3</sup> |
+| 87         | ✔️<sup>1</sup> | ✔️<sup>2</sup> | ✔️<sup>3</sup> |
+
+<sup>1</sup>Requires Windows 11 (24H2) or later.
+
+<sup>2</sup>Requires OpenSSL 3.5.0 or later.
+
+<sup>3</sup>Requires macOS 26 or later.
 
 ### DSA
 
