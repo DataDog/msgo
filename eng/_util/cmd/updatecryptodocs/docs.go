@@ -91,6 +91,7 @@ var doc = Document{
 					Name: "SHA-2-224",
 					Platforms: Platforms{
 						Windows: PlatformStatus{Supported: NotSupported},
+						MacOS:   PlatformStatus{Supported: NotSupported},
 					},
 				},
 				{Name: "SHA-2-256"},
@@ -100,7 +101,7 @@ var doc = Document{
 					Name: "SHA-2-512_224",
 					Platforms: Platforms{
 						Windows: PlatformStatus{Supported: NotSupported},
-						Linux:   PlatformStatus{MinGoVersion: "1.24", MinVersion: "1.1.1"},
+						Linux:   PlatformStatus{MinVersion: "1.1.1"},
 						MacOS:   PlatformStatus{Supported: NotSupported},
 					},
 				},
@@ -108,7 +109,7 @@ var doc = Document{
 					Name: "SHA-2-512_256",
 					Platforms: Platforms{
 						Windows: PlatformStatus{Supported: NotSupported},
-						Linux:   PlatformStatus{MinGoVersion: "1.24", MinVersion: "1.1.1"},
+						Linux:   PlatformStatus{MinVersion: "1.1.1"},
 						MacOS:   PlatformStatus{Supported: NotSupported},
 					},
 				},
@@ -265,7 +266,7 @@ var doc = Document{
 		},
 		{
 			Title:       "Asymmetric encryption",
-			Packages:    []string{"RSA", "ECDSA", "ECDH", "Ed25519", "DSA"},
+			Packages:    []string{"RSA", "ECDSA", "ECDH", "Ed25519", "ML-DSA", "DSA"},
 			Description: "",
 			Subsections: []Section{
 				{
@@ -382,7 +383,6 @@ var doc = Document{
 							Name: "PKCS1v15 Signature (RIPMED160)",
 							Platforms: Platforms{
 								Windows: PlatformStatus{Supported: NotSupported},
-								Linux:   PlatformStatus{MinGoVersion: "1.24"},
 								MacOS:   PlatformStatus{Supported: NotSupported},
 							},
 						},
@@ -395,9 +395,7 @@ var doc = Document{
 						{
 							Name: "PKCS1v15 Signature (MD5-SHA1)",
 							Platforms: Platforms{
-								Windows: PlatformStatus{MinGoVersion: "1.24"},
-								Linux:   PlatformStatus{MinGoVersion: "1.24"},
-								MacOS:   PlatformStatus{Supported: NotSupported},
+								MacOS: PlatformStatus{Supported: NotSupported},
 							},
 						},
 						{Name: "PKCS1v15 Signature (SHA-1)"},
@@ -484,6 +482,39 @@ var doc = Document{
 								Windows: PlatformStatus{Supported: NotSupported},
 								Linux:   PlatformStatus{Supported: NotSupported},
 								MacOS:   PlatformStatus{Supported: NotSupported},
+							},
+						},
+					},
+				},
+				{
+					Title:        "ML-DSA",
+					ColumnHeader: "Parameters",
+					Packages:     []string{"crypto/mldsa"},
+					MinGoVersion: "1.27",
+					Description:  "Operations that require random numbers (rand io.Reader) only support [rand.Reader](https://pkg.go.dev/crypto/rand#Reader). Deterministic signing is always performed by the Go cryptographic module. External-mu signing falls back to the Go cryptographic module on platforms whose backend does not implement it (currently macOS).",
+					Items: []Item{
+						{
+							Name: "44",
+							Platforms: Platforms{
+								Windows: PlatformStatus{MinVersion: "11 (24H2)"},
+								Linux:   PlatformStatus{MinVersion: "3.5.0"},
+								MacOS:   PlatformStatus{Supported: NotSupported},
+							},
+						},
+						{
+							Name: "65",
+							Platforms: Platforms{
+								Windows: PlatformStatus{MinVersion: "11 (24H2)"},
+								Linux:   PlatformStatus{MinVersion: "3.5.0"},
+								MacOS:   PlatformStatus{MinVersion: "26"},
+							},
+						},
+						{
+							Name: "87",
+							Platforms: Platforms{
+								Windows: PlatformStatus{MinVersion: "11 (24H2)"},
+								Linux:   PlatformStatus{MinVersion: "3.5.0"},
+								MacOS:   PlatformStatus{MinVersion: "26"},
 							},
 						},
 					},

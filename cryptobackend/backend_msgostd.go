@@ -1,0 +1,17 @@
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build goexperiment.systemcrypto && msgostd
+
+package backend
+
+import (
+	"crypto/internal/fips140only"
+
+	bhash "github.com/microsoft/go/cryptobackend/hash"
+)
+
+func init() {
+	fips140only.BackendApprovedHash = bhash.Approved
+}

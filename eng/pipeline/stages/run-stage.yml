@@ -8,7 +8,7 @@ parameters:
   - name: ctx
     type: object
 
-  # { id, os, arch, hostArch, config, distro?, experiment?, fips?, broken? }
+  # { id, os, arch, hostArch, config, distro?, experiment?, nosystemcrypto?, fips?, broken? }
   - name: builder
     type: object
 
@@ -38,11 +38,11 @@ stages:
   - stage: ${{ parameters.builder.id }}
     # For display name, try for readability. Use some parameters set by
     # shorthand-builders-to-builders.yml that let us add some formatting.
-    displayName: ${{ parameters.builder.os }}-${{ parameters.builder.arch }} ${{ parameters.builder.hostParens}} ${{ parameters.builder.config }} ${{ parameters.builder.distroParens}} ${{ parameters.builder.experimentBrackets }} ${{ parameters.builder.fipsAcronym }}
+    displayName: ${{ parameters.builder.os }}-${{ parameters.builder.arch }} ${{ parameters.builder.hostParens}} ${{ parameters.builder.config }} ${{ parameters.builder.distroParens}} ${{ parameters.builder.experimentBrackets }} ${{ parameters.builder.nosystemcryptoBrackets }} ${{ parameters.builder.fipsAcronym }}
     dependsOn: []
     jobs:
       - job: ${{ parameters.builder.id }}
-        displayName: ${{ parameters.builder.os }}-${{ parameters.builder.arch }} ${{ parameters.builder.hostParens}} ${{ parameters.builder.config }} ${{ parameters.builder.distroParens}} ${{ parameters.builder.experimentBrackets }} ${{ parameters.builder.fipsAcronym }}
+        displayName: ${{ parameters.builder.os }}-${{ parameters.builder.arch }} ${{ parameters.builder.hostParens}} ${{ parameters.builder.config }} ${{ parameters.builder.distroParens}} ${{ parameters.builder.experimentBrackets }} ${{ parameters.builder.nosystemcryptoBrackets }} ${{ parameters.builder.fipsAcronym }}
         workspace:
           clean: all
 
@@ -180,6 +180,8 @@ stages:
                   PACK_SOURCE_ARG: '-packsource'
                 ${{ if eq(variables.createPDB, true) }}:
                   CREATE_PDB_ARG: '-pdb'
+                ${{ if parameters.builder.nosystemcrypto }}:
+                  MS_GO_NOSYSTEMCRYPTO: 1
               displayName: Build and Pack
 
             # We want to create a checksum as early as possible, but Windows signing involves
@@ -226,11 +228,8 @@ stages:
                 displayName: Remove unexpected tools
 
               - pwsh: |
-                  # Use the version of getmingw specified in the util module.
-                  cd eng\_util
-                  go install github.com/microsoft/go-infra/cmd/getmingw
-                  & "$(go env GOPATH)/bin/getmingw" diagnose
-                  & "$(go env GOPATH)/bin/getmingw" run -ci azdo -source nixman -version 13.2.0-rt_v11-rev0 -arch x86_64 -threading posix -exception seh -runtime msvcrt
+                  eng/run.ps1 go run github.com/microsoft/go-infra/cmd/getmingw diagnose
+                  eng/run.ps1 go run github.com/microsoft/go-infra/cmd/getmingw run -ci azdo -source nixman -version 13.2.0-rt_v11-rev0 -arch x86_64 -threading posix -exception seh -runtime msvcrt
                 displayName: Install MinGW
 
             # Build. This includes retry logic internally if necessary for this builder.
@@ -240,6 +239,9 @@ stages:
                     -builder '${{ parameters.builder.os }}-${{ parameters.builder.arch }}-${{ parameters.builder.config }}' `
                     $(if ('${{ parameters.builder.experiment }}') { '-experiment'; '${{ parameters.builder.experiment }}' }) `
                     $(if ('${{ parameters.builder.fips }}') { '-fipsmode' })
+              ${{ if parameters.builder.nosystemcrypto }}:
+                env:
+                  MS_GO_NOSYSTEMCRYPTO: 1
               displayName: Build
 
             # Run each test retry attempt in its own step. Benefits over a single step:
@@ -268,8 +270,11 @@ stages:
                       -builder '${{ parameters.builder.os }}-${{ parameters.builder.arch }}-${{ parameters.builder.config }}' `
                       $(if ('${{ parameters.builder.experiment }}') { '-experiment'; '${{ parameters.builder.experiment }}' }) `
                       $(if ('${{ parameters.builder.fips }}') { '-fipsmode' }) `
-                      -junitout '$(Build.SourcesDirectory)/eng/artifacts/RawTestOutput/TestResults.xml' `
+                      -junitout '$(Build.SourcesDirectory)/eng/artifacts/RawTestOutput/TestResults-attempt-${{ attempt }}.xml' `
                       -rawtestout '$(Build.SourcesDirectory)/eng/artifacts/RawTestOutput/raw-json-attempt-${{ attempt }}.txt'
+                ${{ if parameters.builder.nosystemcrypto }}:
+                  env:
+                    MS_GO_NOSYSTEMCRYPTO: 1
                 ${{ if eq(length(parameters.retryAttempts), 1) }}:
                   displayName: Test
                 ${{ else }}:
@@ -284,17 +289,17 @@ stages:
                   # Don't fail the job if we are at the last retry and the builder is marked as broken.
                   continueOnError: true
 
-            # Publish test results. Use the last-overwritten result, if multiple attempts were made.
-            - task: PublishTestResults@2
-              displayName: Publish test results
-              condition: succeededOrFailed()
-              inputs:
-                testResultsFormat: JUnit
-                testResultsFiles: $(Build.SourcesDirectory)/eng/artifacts/RawTestOutput/TestResults.xml
-                testRunTitle: $(System.JobDisplayName)
-                buildPlatform: ${{ parameters.builder.arch }}
-                buildConfiguration: ${{ parameters.builder.config }}
-                publishRunAttachments: true
+              # Publish this retry attempt's test results as its own test run.
+              - task: PublishTestResults@2
+                displayName: Publish test results (${{ attempt }})
+                condition: and(ne(variables['TEST_BUILDER_SUCCESSFUL'], 'true'), succeededOrFailed())
+                inputs:
+                  testResultsFormat: JUnit
+                  testResultsFiles: $(Build.SourcesDirectory)/eng/artifacts/RawTestOutput/TestResults-attempt-${{ attempt }}.xml
+                  testRunTitle: $(System.JobDisplayName) (retry ${{ attempt }}, stage attempt $(System.StageAttempt))
+                  buildPlatform: ${{ parameters.builder.arch }}
+                  buildConfiguration: ${{ parameters.builder.config }}
+                  publishRunAttachments: true
 
             # Publish raw test JSON output and the published (or attempted to publish) JUnit XML.
             - task: ${{ iif(eq(variables['System.TeamProject'], 'public'), '', '1ES.') }}PublishPipelineArtifact@1
@@ -302,11 +307,7 @@ stages:
               condition: succeededOrFailed()
               inputs:
                 targetPath: $(Build.SourcesDirectory)/eng/artifacts/RawTestOutput
-                artifactName: raw-test-output-${{ parameters.builder.id }}-retry-$(System.JobAttempt)
-
-          # - ${{ if eq(parameters.builder.config, 'buildandpack' ) }}:
-          #   - ${{ if ne(parameters.releaseVersion, 'nil') }}:
-          #     # Retain the build: https://github.com/microsoft/go-lab/issues/59
+                artifactName: raw-test-output-${{ parameters.builder.id }}-retry-$(System.StageAttempt)-job-$(System.JobAttempt)
 
           - ${{ if eq(parameters.builder.os, 'linux') }}:
             # Files may be owned by root because builds don't set user ID. If this build is running on a
