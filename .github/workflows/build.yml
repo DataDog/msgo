@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.bootstrap_version.outputs.version }}"
-          echo "${VERSION%-*}" > go/VERSION
+          echo "go${VERSION%-*}" > go/VERSION
           echo "VERSION file contents: $(cat go/VERSION)"
 
       - name: Build Go toolchain (Unix)
