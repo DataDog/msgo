@@ -103,7 +103,7 @@ jobs:
           echo "Setup-go version: $VERSION"
           
       - name: Set up Go (bootstrap)
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: ${{ steps.setup_go_version.outputs.version }}
           cache: false
@@ -184,7 +184,7 @@ jobs:
           Get-ChildItem artifacts
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: msgo-${{ matrix.target_os }}-${{ matrix.display_arch || matrix.target_arch }}
           path: artifacts/*
@@ -199,7 +199,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: release-artifacts
           merge-multiple: true
@@ -210,14 +210,14 @@ jobs:
           find release-artifacts -type f -ls
 
       - name: Upload combined release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: msgo-release-all-platforms
           path: release-artifacts/*
           retention-days: 90
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1.0.0
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: release-artifacts/*
