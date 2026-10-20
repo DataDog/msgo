@@ -12,10 +12,15 @@ import (
 	"github.com/microsoft/go-crypto-darwin/xcrypto"
 )
 
-func Supports() bool { return true }
-func Extract[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
+func Supports(h hash.Hash) bool {
+	_, ok := h.(*xcrypto.Hash)
+	// CryptoKit supports HKDF with every native hash except MD5.
+	return ok && h.Size() != 16
+}
+
+func extract[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	return xcrypto.ExtractHKDF(h, secret, salt)
 }
-func Expand[H hash.Hash](h func() H, pseudorandomKey []byte, info string, keyLen int) ([]byte, error) {
+func expand[H hash.Hash](h func() H, pseudorandomKey []byte, info string, keyLen int) ([]byte, error) {
 	return xcrypto.ExpandHKDF(h, pseudorandomKey, []byte(info), keyLen)
 }

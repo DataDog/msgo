@@ -68,9 +68,27 @@ The counters and properties collected are defined in the [telemetry upload confi
 
 ## How to opt out
 
-Set the `MS_GOTOOLCHAIN_TELEMETRY_ENABLED` environment variable to `0`.
+> [!NOTE]
+> Configuration through `go env -w` and `$GOROOT/go.env` is supported starting with Microsoft build of Go `v1.27.2-2`.
+> In earlier versions, the `MS_GOTOOLCHAIN_TELEMETRY_ENABLED` process environment variable is the only way to configure the Microsoft-specific telemetry collection.
 
-This completely disables Microsoft telemetry collection. When disabled, no data is sent to Application Insights.
+The Microsoft build of Go sets `MS_GOTOOLCHAIN_TELEMETRY_ENABLED=1` in `$GOROOT/go.env`.
+An effective value of `1` enables telemetry collection and sends data to Application Insights.
+An effective value of `0` completely disables telemetry collection and sends no data.
+
+Users can override the installation default with the standard Go environment configuration:
+
+```shell
+go env -w MS_GOTOOLCHAIN_TELEMETRY_ENABLED=0
+```
+
+To override the setting for an individual process, set the `MS_GOTOOLCHAIN_TELEMETRY_ENABLED` environment variable to `0` when starting the process.
+
+Configuration is resolved in this order, from highest to lowest precedence:
+
+1. The process environment.
+2. The user's `GOENV` file, managed with `go env -w` and `go env -u`.
+3. The installation-wide `$GOROOT/go.env` file.
 
 > [!NOTE]
 > This setting only controls Microsoft-specific telemetry. The upstream Go toolchain has its own [telemetry system](https://go.dev/doc/telemetry) controlled separately via `go telemetry`.

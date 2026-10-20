@@ -96,10 +96,17 @@ func main() {
 		buildutil.AppendExperimentEnv("staticlockranking")
 	}
 
-	// Some Windows builders are slower than others and require more time for the runtime dist tests
-	// in "GOMAXPROCS=2 runtime -cpu=1,2,4 -quick" mode. https://github.com/microsoft/go/issues/700
-	if goos == "windows" {
+	switch goos {
+	case "windows":
+		// Some Windows builders need more time for runtime dist tests. https://github.com/microsoft/go/issues/700
 		timeoutScale *= 2
+	case "darwin":
+		// Darwin builders need more time for cmd/go script tests.
+		timeoutScale *= 2
+	case "linux":
+		// Linux builders need more time for cmd/go script tests.
+		timeoutScale *= 2
+
 	}
 
 	if timeoutScale != 1 {
@@ -171,6 +178,8 @@ func main() {
 		if config == "test" {
 			buildutil.SetEnv("GO_BUILDER_NAME", goos+"-"+goarch)
 		}
+
+		runOrPanic("go/bin/go", "-C", "toolchaintest", "test", "-count=1")
 
 		cmdline := []string{
 			// Use the dist test command directly, because 'src/run.bash' isn't compatible with

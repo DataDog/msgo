@@ -8,7 +8,7 @@ package pbkdf2
 
 import "hash"
 
-func Supports() bool { panic("cryptobackend: not available") }
-func Key[H hash.Hash](h func() H, password string, salt []byte, iter, keyLength int) ([]byte, error) {
+func Supports(h hash.Hash) bool { panic("cryptobackend: not available") }
+func key[H hash.Hash](h func() H, password string, salt []byte, iter, keyLength int) ([]byte, error) {
 	panic("cryptobackend: not available")
 }

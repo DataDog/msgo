@@ -229,7 +229,18 @@ stages:
 
               - pwsh: |
                   eng/run.ps1 go run github.com/microsoft/go-infra/cmd/getmingw diagnose
-                  eng/run.ps1 go run github.com/microsoft/go-infra/cmd/getmingw run -ci azdo -source nixman -version 13.2.0-rt_v11-rev0 -arch x86_64 -threading posix -exception seh -runtime msvcrt
+                  if ('${{ parameters.builder.arch }}' -eq '386') {
+                    $arch = 'i686'
+                    $exception = 'dwarf'
+                  } else {
+                    $arch = 'x86_64'
+                    $exception = 'seh'
+                  }
+                  # Binutils 2.44 fixes SECREL TLS offsets being corrupted by ASLR.
+                  eng/run.ps1 go run github.com/microsoft/go-infra/cmd/getmingw run `
+                    -ci azdo `
+                    -source nixman -version 14.2.0-rt_v12-rev2 `
+                    -arch $arch -threading posix -exception $exception -runtime msvcrt
                 displayName: Install MinGW
 
             # Build. This includes retry logic internally if necessary for this builder.

@@ -43,11 +43,6 @@ func TestUnreachable(t *testing.T) {
 	Unreachable()
 }
 
-// Test that UnreachableExceptTests does not panic (this is a test).
-func TestUnreachableExceptTests(t *testing.T) {
-	UnreachableExceptTests()
-}
-
 func TestSubpackagesImportRoot(t *testing.T) {
 	root, err := os.Getwd()
 	if err != nil {
@@ -104,7 +99,11 @@ func skipRootImportCheck(rel string) bool {
 	}
 	parts := strings.Split(filepath.ToSlash(rel), "/")
 	switch parts[0] {
-	case "bbig", "fips140", "hash", "internal":
+	case "cipher":
+		// cipher is imported by crypto/cipher. Importing the root package here
+		// would create a cycle through the platform providers.
+		return true
+	case "bbig", "fips140", "internal":
 		return true
 	}
 	return false
@@ -208,16 +207,37 @@ func requiredModuleVersionFromGoModPatch(patch []byte, modulePath string) (strin
 		if !inGoMod {
 			continue
 		}
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "+") || strings.HasPrefix(trimmed, "+++") {
+		if line == "" || (line[0] != '+' && line[0] != ' ') || strings.HasPrefix(line, "+++") {
 			continue
 		}
-		fields := strings.Fields(strings.TrimPrefix(trimmed, "+"))
+		fields := strings.Fields(line[1:])
 		if len(fields) >= 2 && fields[0] == modulePath {
 			return fields[1], true
 		}
 	}
 	return "", false
+}
+
+func TestRequiredModuleVersionFromGoModPatch(t *testing.T) {
+	const modulePath = "example.com/module"
+	for _, test := range []struct {
+		name  string
+		line  string
+		want  string
+		found bool
+	}{
+		{"added", "+\texample.com/module v1.2.3", "v1.2.3", true},
+		{"unchanged", " \texample.com/module v1.2.3", "v1.2.3", true},
+		{"removed", "-\texample.com/module v1.2.3", "", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			patch := []byte("diff --git a/src/go.mod b/src/go.mod\n" + test.line + "\n")
+			got, found := requiredModuleVersionFromGoModPatch(patch, modulePath)
+			if got != test.want || found != test.found {
+				t.Fatalf("requiredModuleVersionFromGoModPatch() = %q, %v; want %q, %v", got, found, test.want, test.found)
+			}
+		})
+	}
 }
 
 type goModFile struct {

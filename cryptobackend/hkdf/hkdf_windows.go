@@ -12,10 +12,14 @@ import (
 	"github.com/microsoft/go-crypto-winnative/cng"
 )
 
-func Supports() bool { return cng.SupportsHKDF() }
-func Extract[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
+func Supports(h hash.Hash) bool {
+	_, ok := h.(*cng.Hash)
+	return ok && cng.SupportsHKDF()
+}
+
+func extract[H hash.Hash](h func() H, secret, salt []byte) ([]byte, error) {
 	return cng.ExtractHKDF(h, secret, salt)
 }
-func Expand[H hash.Hash](h func() H, pseudorandomKey []byte, info string, keyLen int) ([]byte, error) {
+func expand[H hash.Hash](h func() H, pseudorandomKey []byte, info string, keyLen int) ([]byte, error) {
 	return cng.ExpandHKDF(h, pseudorandomKey, []byte(info), keyLen)
 }

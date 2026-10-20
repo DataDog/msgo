@@ -1,0 +1,84 @@
+# Copyright (c) Microsoft Corporation.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# This template determines the correct pool names and agent demands based on the
+# current branch and AzDO project and passes them into the provided inner stages
+# template.
+#
+# Previously, this was a 3-file chain (pool.yml -> pool-1.yml -> pool-2.yml)
+# because AzDO template expressions can't compute a value and reuse it later in
+# the same file. pipelineymlgen lets us define expressions once as data
+# variables and expand them in the generated output, so all the logic is here.
+
+pipelineymlgen:
+  data:
+    # Shorthand for AzDO expressions that are reused multiple times below.
+
+    # "public" (vs. internal) AzDO project.
+    isPublicExpr: "eq(variables['System.TeamProject'], 'public')"
+    # "servicing" (vs. R&D) branch.
+    isServicingExpr: "startsWith(variables['Build.SourceBranch'], 'refs/heads/microsoft/release-branch')"
+
+    osExpr: "parameters.inner.parameters.builder.os"
+    hostArchExpr: "parameters.inner.parameters.builder.hostArch"
+    distroExpr: "parameters.inner.parameters.builder.distro"
+  output: self
+---
+
+parameters:
+  - name: ctx
+    type: object
+
+  # The inner template: { template string, parameters object }
+  # Note: the template path is relative to this file (inside "stages/"), not the caller's file path.
+  - name: inner
+    type: object
+
+stages:
+  - template: ${{ parameters.inner.template }}
+    parameters:
+      ${{ insert }}: ${{ parameters.inner.parameters }}
+
+      pool:
+        # --- darwin: use Azure Pipelines hosted pool ---
+        ${{ if eq(${ .osExpr }, 'darwin') }}:
+          name: Azure Pipelines
+          # https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml#software
+          ${{ if eq(${ .hostArchExpr }, 'amd64') }}:
+            vmImage: 'macos-14'
+          ${{ else }}:
+            vmImage: 'macos-15-arm64'
+          os: macOS
+
+        # --- linux ---
+        ${{ elseif eq(${ .osExpr }, 'linux') }}:
+          # arm64 host: dedicated uniform pool, no demands needed.
+          ${{ if eq(${ .hostArchExpr }, 'arm64') }}:
+            name: Docker-Linux-Arm-Internal
+          # amd64 host: needs pool name and demands.
+          ${{ else }}:
+            ${ inlinetemplate "pool-netcore.yml" }:
+            # Pool image/demands
+            ${{ if parameters.ctx['Go1ESOfficial'] }}:
+              image: 1es-ubuntu-2204
+              os: linux
+            ${{ elseif ${ .isPublicExpr } }}:
+              demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+            ${{ else }}:
+              demands: ImageOverride -equals 1es-ubuntu-2204
+              os: linux
+
+        # --- windows (default) ---
+        ${{ else }}:
+          ${ inlinetemplate "pool-netcore.yml" }:
+          # Pool image/demands
+          # https://helix.dot.net/#1esPools
+          ${{ if parameters.ctx['Go1ESOfficial'] }}:
+            image: 1es-windows-${{ ${ .distroExpr } }}
+            os: windows
+          ${{ elseif ${ .isPublicExpr } }}:
+            demands: ImageOverride -equals 1es-windows-${{ ${ .distroExpr } }}-open
+          ${{ else }}:
+            demands: ImageOverride -equals 1es-windows-${{ ${ .distroExpr } }}
+            os: windows
